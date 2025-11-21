@@ -70,9 +70,13 @@ carregarInterface();
 // --------------------
 
 async function carregarLista() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
   const { data, error } = await supabase
     .from("itens")
     .select("*")
+    .eq("user_id", user.id)   // <<--- FILTRAR PELO DONO
     .order("id", { ascending: true });
 
   if (error) return alert("Erro ao carregar: " + error.message);
@@ -89,13 +93,23 @@ async function carregarLista() {
 
 async function adicionarItem() {
   const texto = document.getElementById("item-text").value;
+  if (!texto.trim()) return alert("Digite algo!");
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return alert("Usuário não autenticado.");
 
   const { error } = await supabase
     .from("itens")
-    .insert([{ texto }]);
+    .insert([
+      {
+        texto,
+        user_id: user.id  // <<--- ESSENCIAL PARA MULTIUSUÁRIO
+      }
+    ]);
 
   if (error) return alert("Erro ao adicionar: " + error.message);
 
   document.getElementById("item-text").value = "";
   carregarLista();
 }
+
